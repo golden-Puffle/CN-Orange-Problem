@@ -76,16 +76,16 @@ sudo mn --topo single,3 --controller=remote
 ## 📸 Screenshots
 
 ### Normal Network
-![Normal](normal.png)
+![Normal](outputs/normal.png)
 
 ### 50ms Delay
-![Delay 50ms](delay50.png)
+![Delay 50ms](outputs/delay50.png)
 
 ### 100ms Delay + Loss
-![Delay 100ms](delay100.png)
+![Delay 100ms](outputs/delay100.png)
 
 ### With Controller (POX)
-![Controller](controller.png)
+![Controller](outputs/controller.png)
 
 ---
 
