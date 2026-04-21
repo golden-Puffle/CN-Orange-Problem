@@ -1,101 +1,206 @@
-# Network Delay Measurement Tool
+# SDN Firewall using Mininet and POX
 
 ## 📌 Problem Statement
 
-Measure and analyze latency (RTT) between hosts using Mininet. Record RTT values, compare across different network conditions, and analyze delay variations.
+The objective of this project is to design and implement a Software Defined Networking (SDN) solution using Mininet and an OpenFlow controller (POX). The system demonstrates controller–switch interaction, flow rule installation, and network behavior control using match–action logic.
+
+This project implements an **SDN-based firewall** that selectively blocks traffic between specific hosts while allowing all other communication.
 
 ---
 
-## ⚙️ Setup
+## 🎯 Objectives
 
-### Install Mininet
+* Implement SDN architecture using Mininet and POX controller
+* Handle `PacketIn` events in the controller
+* Design and install OpenFlow match–action rules
+* Demonstrate allowed and blocked traffic scenarios
+* Observe and analyze flow table entries
 
+---
+
+## 🛠️ Technologies Used
+
+* Mininet (Network Emulator)
+* POX Controller (Python-based OpenFlow controller)
+* OpenFlow 1.0 Protocol
+* Ubuntu Linux (Virtual Machine)
+
+---
+
+## 🧱 Network Topology
+
+* Single switch topology with 3 hosts:
+
+  * h1 → 10.0.0.1
+  * h2 → 10.0.0.2
+  * h3 → 10.0.0.3
+* All hosts are connected to a single OpenFlow switch (s1)
+
+---
+
+## ⚙️ Setup and Execution Steps
+
+### 1. Install Mininet
+
+```bash
 sudo apt update
 sudo apt install mininet -y
+```
 
-### Run POX Controller
+### 2. Clone POX Controller
 
+```bash
+git clone https://github.com/noxrepo/pox
 cd pox
-./pox.py forwarding.l2_learning
+chmod +x pox.py
+```
+
+### 3. Create Controller File
+
+```bash
+nano firewall.py
+```
+
+Paste the controller code and save.
 
 ---
 
-## ▶️ Execution
+### 4. Start POX Controller
 
-### Start Mininet (example)
+```bash
+./pox.py firewall
+```
 
-sudo mn --topo single,3
+---
 
-### Test connectivity
+### 5. Start Mininet (in new terminal)
 
-h1 ping h2 -c 5
+```bash
+sudo mn --topo single,3 --controller=remote,ip=127.0.0.1,port=6633
+```
 
 ---
 
 ## 🧪 Test Scenarios
 
-### 1. Normal Network
+### ✅ Test Case 1: Allowed Traffic
 
-sudo mn --topo single,3
+```bash
+h1 ping h2
+```
 
-### 2. With Delay (50ms)
+**Expected Output:**
 
-sudo mn --topo single,3 --link tc,delay=50ms
-
-### 3. Delay + Packet Loss
-
-sudo mn --topo single,3 --link tc,delay=100ms,loss=10
-
-### 4. With SDN Controller (POX)
-
-sudo mn --topo single,3 --controller=remote
+* Successful communication
+* Packets transmitted and received
 
 ---
 
-## 📊 Experimental Results
+### ❌ Test Case 2: Blocked Traffic
 
-| Scenario              | Min RTT (ms) | Avg RTT (ms) | Max RTT (ms) | Packet Loss |
-| --------------------- | ------------ | ------------ | ------------ | ----------- |
-| Normal Network        | 0.064        | 0.754        | 3.479        | 0%          |
-| 50ms Delay            | 202.308      | 252.875      | 437.693      | 0%          |
-| 100ms Delay + Loss    | 403.914      | 439.859      | 469.996      | ~16.7%      |
-| With Controller (POX) | 0.072        | 8.789        | 42.344       | 0%          |
+```bash
+h1 ping h3
+```
 
----
+**Expected Output:**
 
-## 📈 Analysis
-
-* RTT increases significantly with added network delay.
-* Observed RTT is higher than configured delay due to bidirectional transmission and multiple links.
-* Packet loss introduces variability and increases effective delay.
-* With POX, the first packet experiences higher delay due to flow rule installation.
-* Subsequent packets are faster due to direct forwarding by the switch.
+* 100% packet loss
+* Communication blocked
 
 ---
 
-## 📸 Screenshots
+## 📊 Flow Table Inspection
 
-### Normal Network
-![Normal](outputs/normal.png)
+```bash
+sh ovs-ofctl dump-flows s1
+```
 
-### 50ms Delay
-![Delay 50ms](outputs/delay50.png)
+### 🔍 Actual Output:
 
-### 100ms Delay + Loss
-![Delay 100ms](outputs/delay100.png)
+```
+cookie=0x0, duration=72.521s, table=0, n_packets=3, n_bytes=294, priority=10,ip,nw_src=10.0.0.1,nw_dst=10.0.0.2 actions=FLOOD
+cookie=0x0, duration=72.469s, table=0, n_packets=3, n_bytes=294, priority=10,ip,nw_src=10.0.0.2,nw_dst=10.0.0.1 actions=FLOOD
+cookie=0x0, duration=58.151s, table=0, n_packets=10, n_bytes=980, priority=100,ip,nw_src=10.0.0.1,nw_dst=10.0.0.3 actions=drop
+```
 
-### With Controller (POX)
-![Controller](outputs/controller.png)
+---
+
+## 🧠 Flow Table Analysis
+
+* **Rule 1 (Allow h1 → h2):**
+  Matches traffic from h1 to h2 and forwards packets using FLOOD
+  → Demonstrates allowed communication
+
+* **Rule 2 (Allow h2 → h1):**
+  Reverse communication is also permitted
+  → Ensures bidirectional connectivity
+
+* **Rule 3 (Block h1 → h3):**
+  High-priority rule that matches traffic from h1 to h3
+  → `actions=drop` ensures packets are discarded
+  → Demonstrates firewall behavior
+
+* **Priority Handling:**
+
+  * Block rule has higher priority (100)
+  * Allow rules have lower priority (10)
+    → Ensures blocking rule overrides forwarding
+
+---
+
+## 🔍 Controller Logic
+
+* The controller listens for `PacketIn` events
+* Matches packets based on:
+
+  * Source IP (`nw_src`)
+  * Destination IP (`nw_dst`)
+  * Ethernet type (`dl_type = IPv4`)
+* Installs:
+
+  * **High-priority drop rule** for blocked traffic
+  * **Lower-priority forwarding rules** for allowed traffic
+* Uses `PacketOut` to forward the first packet
+
+---
+
+## 📸 Proof of Execution
+
+Include the following screenshots:
+
+* Controller logs showing rule installation
+* `h1 ping h2` (successful)
+* `h1 ping h3` (blocked)
+* Flow table output
+
+---
+
+## 📈 Observations
+
+* Initial packets are sent to the controller (`PacketIn`)
+* Controller installs flow rules dynamically
+* Subsequent packets bypass controller (handled by switch)
+* Blocking is enforced via high-priority drop rule
+* Packet counters (`n_packets`) confirm rule usage
 
 ---
 
 ## ✅ Conclusion
 
-The project demonstrates how latency is affected by delay and packet loss. The SDN controller introduces initial overhead but improves efficiency for subsequent packets.
+This project successfully demonstrates:
+
+* SDN-based traffic control using OpenFlow
+* Implementation of firewall policies
+* Dynamic flow rule installation
+* Efficient packet forwarding and filtering
 
 ---
 
 ## 📚 References
 
-* https://mininet.org
-* POX Controller Documentation
+* https://mininet.org/overview/
+* https://github.com/mininet/mininet
+* https://github.com/noxrepo/pox
+* OpenFlow Switch Specification
+
+---
