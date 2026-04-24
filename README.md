@@ -1,82 +1,129 @@
-Network Delay Measurement Tool
-📌 Problem Statement
+# Network Delay Measurement Tool
+
+## 📌 Problem Statement
 
 Measure and analyze latency (RTT) between hosts using Mininet. Record RTT values, compare across scenarios, and analyze delay variations.
 
-🎯 Objectives
-Measure RTT using ICMP ping
-Analyze the impact of delay and packet loss
-Compare allowed vs blocked communication
-Demonstrate SDN using POX controller
-Observe flow table behavior
-⚙️ Setup
-Start POX Controller
+---
+
+## 🎯 Objectives
+
+* Measure RTT using ping
+* Analyze delay and packet loss impact
+* Compare allowed vs blocked communication
+* Demonstrate SDN using POX controller
+* Observe flow table behavior
+
+---
+
+## ⚙️ Setup
+
+### Start POX Controller
+
 cd pox
 ./pox.py forwarding.l2_learning
-Start Mininet
+
+### Start Mininet
+
 sudo mn --topo single,3 --controller=remote
-🧪 Experimental Scenarios
-✅ Allowed Communication (SDN)
+
+---
+
+## 🧪 Experimental Scenarios
+
+### ✅ Allowed Communication (SDN)
+
 h1 ping h2 -c 5
 
 RTT:
 
-Min: 0.081 ms
-Avg: 15.159 ms
-Max: 71.685 ms
-Packet Loss: 0%
-❌ Blocked Communication
+* Min: 0.081 ms
+* Avg: 15.159 ms
+* Max: 71.685 ms
+* Loss: 0%
+
+---
+
+### ❌ Blocked Communication
+
 sh ovs-ofctl add-flow s1 "priority=100,icmp,actions=drop"
+
 h1 ping h2 -c 5
 
 Result:
 
-Packet Loss: 100%
-🌐 Normal Network (No Controller)
+* Packet Loss: 100%
+
+---
+
+### 🌐 Normal Network (No Controller)
+
 sudo mn --topo single,3
-h1 ping h2 -c 5
 
 RTT:
 
-Min: 0.076 ms
-Avg: 9.207 ms
-Max: 45.199 ms
-Packet Loss: 0%
-⏱️ 50ms Delay
+* Min: 0.076 ms
+* Avg: 9.207 ms
+* Max: 45.199 ms
+* Loss: 0%
+
+---
+
+### ⏱️ 50ms Delay
+
 sudo mn --topo single,3 --link tc,delay=50ms
-h1 ping h2 -c 5
 
 RTT:
 
-Min: 203.895 ms
-Avg: 254.982 ms
-Max: 449.496 ms
-Packet Loss: 0%
-⚠️ 100ms Delay + Loss
+* Min: 203.895 ms
+* Avg: 254.982 ms
+* Max: 449.496 ms
+* Loss: 0%
+
+---
+
+### ⚠️ 100ms Delay + Loss
+
 sudo mn --topo single,3 --link tc,delay=100ms,loss=10
-h1 ping h2 -c 5
 
 RTT:
 
-Min: 403.116 ms
-Avg: 504.681 ms
-Max: 837.000 ms
-Packet Loss: 0% (observed)
-📊 Flow Table
+* Min: 403.116 ms
+* Avg: 504.681 ms
+* Max: 837.000 ms
+* Loss: 0% (observed)
+
+---
+
+## 📊 Flow Table
 
 Command:
-
 sh ovs-ofctl dump-flows s1
 
 Observations:
 
-ICMP flow rules are installed for forwarding
-Drop rule successfully blocks traffic in blocked scenario
-Flow table reflects match–action logic of SDN
+* ICMP rules added for forwarding
+* Drop rule blocks traffic in blocked case
+
+---
+
+## 💻 Python Script
+
+Script automates RTT extraction.
+
+Output:
+
+* Min: 0.098 ms
+* Avg: 0.902 ms
+* Max: 4.041 ms
+
+---
+
 💻 Python Script (delay_measure.py)
 
-This script automates RTT extraction from ping output.
+This script automates RTT measurement by executing the ping command and extracting minimum, average, and maximum RTT values from the output.
 
+📄 Code
 import subprocess
 import re
 
@@ -103,7 +150,7 @@ measure_rtt()
 sudo cp delay_measure.py /tmp/
 sudo mn --topo single,3
 mininet> h1 python3 /tmp/delay_measure.py
-Output:
+📊 Output
 Min: 0.098 ms
 Avg: 0.902 ms
 Max: 4.041 ms
@@ -133,7 +180,7 @@ Max: 4.041 ms
 
 ---
 
-## 📸 Screenshots
+## 📸 Output Screenshots
 
 ### ✅ Allowed Communication (SDN)
 ![Allowed](orange_outputs/allowed.png)  
@@ -168,7 +215,6 @@ Max: 4.041 ms
 ### 💻 Python Script Output
 ![Script Output](orange_outputs/delay_measure.py.png)  
 *Figure 6: Automated extraction of RTT values using the Python script.*
-
 ---
 
 ## ✅ Conclusion
