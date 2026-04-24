@@ -1,59 +1,29 @@
 # Network Delay Measurement Tool
 
-## 📌 Project Title
+## 📌 Problem Statement
 
-Network Delay Measurement Tool
-
----
-
-## 📖 Problem Statement
-
-Measure and analyze latency (Round Trip Time - RTT) between hosts in a network. Record RTT values using ping, compare across different scenarios, and analyze delay variations.
+Measure and analyze latency (RTT) between hosts using Mininet. Record RTT values, compare across scenarios, and analyze delay variations.
 
 ---
 
 ## 🎯 Objectives
 
-* Measure RTT using ICMP ping
-* Analyze impact of delay and packet loss
+* Measure RTT using ping
+* Analyze delay and packet loss impact
 * Compare allowed vs blocked communication
-* Demonstrate SDN concepts using POX controller
-* Observe and analyze flow table entries
+* Demonstrate SDN using POX controller
+* Observe flow table behavior
 
 ---
 
-## ⚙️ Tools and Technologies
+## ⚙️ Setup
 
-* Mininet (Network Emulator)
-* POX Controller (SDN Controller)
-* Ubuntu (Virtual Machine)
-* Python (Automation Script)
-* ICMP Ping
-
----
-
-## 🏗️ Network Topology
-
-Single switch topology with 3 hosts:
-
-h1 ---- s1 ---- h2
-│
-h3
-
----
-
-## ▶️ Setup Instructions
-
-### 1. Clean previous setup
-
-sudo mn -c
-
-### 2. Start POX Controller
+### Start POX Controller
 
 cd pox
 ./pox.py forwarding.l2_learning
 
-### 3. Start Mininet
+### Start Mininet
 
 sudo mn --topo single,3 --controller=remote
 
@@ -61,135 +31,157 @@ sudo mn --topo single,3 --controller=remote
 
 ## 🧪 Experimental Scenarios
 
-### ✅ 1. Allowed Communication
+### ✅ Allowed Communication (SDN)
 
 h1 ping h2 -c 5
 
+RTT:
+
+* Min: 0.081 ms
+* Avg: 15.159 ms
+* Max: 71.685 ms
+* Loss: 0%
+
 ---
 
-### ❌ 2. Blocked Communication
+### ❌ Blocked Communication
 
 sh ovs-ofctl add-flow s1 "priority=100,icmp,actions=drop"
 
 h1 ping h2 -c 5
 
+Result:
+
+* Packet Loss: 100%
+
 ---
 
-### 🌐 3. Normal Network
+### 🌐 Normal Network (No Controller)
 
 sudo mn --topo single,3
 
-h1 ping h2 -c 5
+RTT:
+
+* Min: 0.076 ms
+* Avg: 9.207 ms
+* Max: 45.199 ms
+* Loss: 0%
 
 ---
 
-### ⏱️ 4. 50ms Delay
+### ⏱️ 50ms Delay
 
 sudo mn --topo single,3 --link tc,delay=50ms
 
-h1 ping h2 -c 5
+RTT:
+
+* Min: 203.895 ms
+* Avg: 254.982 ms
+* Max: 449.496 ms
+* Loss: 0%
 
 ---
 
-### ⚠️ 5. 100ms Delay + Packet Loss
+### ⚠️ 100ms Delay + Loss
 
 sudo mn --topo single,3 --link tc,delay=100ms,loss=10
 
-h1 ping h2 -c 5
+RTT:
+
+* Min: 403.116 ms
+* Avg: 504.681 ms
+* Max: 837.000 ms
+* Loss: 0% (observed)
 
 ---
 
-## 📊 Flow Table Verification
+## 📊 Flow Table
 
-To view flow rules:
+Command:
 sh ovs-ofctl dump-flows s1
 
-This shows match-action rules installed by the controller and manual rules (e.g., drop rule).
+Observations:
+
+* ICMP rules added for forwarding
+* Drop rule blocks traffic in blocked case
 
 ---
 
-## 💻 Python Automation Script
+## 💻 Python Script
 
-File: `delay_measure.py`
+Script automates RTT extraction.
 
-This script automates RTT extraction from ping output.
+Output:
 
-### Run:
-
-sudo cp delay_measure.py /tmp/
-sudo mn --topo single,3
-
-mininet> h1 python3 /tmp/delay_measure.py
+* Min: 0.098 ms
+* Avg: 0.902 ms
+* Max: 4.041 ms
 
 ---
 
-## 📊 Experimental Results
+## 📊 Summary Table
 
-| Scenario           | Min RTT (ms) | Avg RTT (ms) | Max RTT (ms) | Packet Loss |
-| ------------------ | ------------ | ------------ | ------------ | ----------- |
-| Normal Network     | ~0.06        | ~0.75        | ~3.48        | 0%          |
-| 50ms Delay         | ~202         | ~253         | ~438         | 0%          |
-| 100ms Delay + Loss | ~404         | ~440         | ~470         | ~16.7%      |
-| Allowed (SDN)      | ~0.07        | ~8.7         | ~42          | 0%          |
-| Blocked            | -            | -            | -            | 100%        |
+| Scenario           | Min RTT | Avg RTT | Max RTT | Packet Loss |
+| ------------------ | ------- | ------- | ------- | ----------- |
+| Allowed (SDN)      | 0.081   | 15.159  | 71.685  | 0%          |
+| Blocked            | -       | -       | -       | 100%        |
+| Normal             | 0.076   | 9.207   | 45.199  | 0%          |
+| 50ms Delay         | 203.895 | 254.982 | 449.496 | 0%          |
+| 100ms Delay + Loss | 403.116 | 504.681 | 837.000 | 0%          |
 
 ---
 
 ## 📈 Analysis
 
-* RTT increases significantly with added delay
-* Delay affects both forward and return paths, increasing total RTT
-* Packet loss introduces instability and increases effective delay
-* In SDN, the first packet is slower due to controller interaction
-* Flow rules improve performance for subsequent packets
-* Blocking rules successfully drop ICMP packets, preventing communication
+* RTT increases significantly with delay
+* Delay is applied on both directions, increasing total RTT
+* Packet loss introduces variability (though not observed due to small sample size)
+* SDN controller adds initial delay due to flow setup
+* Flow rules optimize subsequent packet forwarding
+* Blocking rule successfully drops all ICMP packets
 
 ---
 
 ## 📸 Screenshots
 
-### Allowed Communication
+### ✅ Allowed Communication (SDN)
+![Allowed](orange_outputs/allowed.png)  
+*Figure 1: Successful communication between hosts using SDN controller. Initial delay is observed due to flow rule installation.*
 
-![Allowed](outputs/allowed.png)
+---
 
-### Blocked Communication
+### ❌ Blocked Communication
+![Blocked](orange_outputs/blocked.png)  
+*Figure 2: Communication blocked using OpenFlow rule. All ICMP packets are dropped, resulting in 100% packet loss.*
 
-![Blocked](outputs/blocked.png)
+---
 
-### Flow Table (Allowed)
+### 🌐 Normal Network
+![Normal](orange_outputs/normal.png)  
+*Figure 3: RTT in normal network without delay. Very low latency observed.*
 
-![Flows Allowed](outputs/flows_allowed.png)
+---
 
-### Flow Table (Blocked)
+### ⏱️ 50ms Delay
+![Delay 50ms](orange_outputs/delay_50.png)  
+*Figure 4: Increased RTT due to added 50ms delay. Delay affects both forward and return paths.*
 
-![Flows Blocked](outputs/flows_blocked.png)
+---
 
-### Normal Network
+### ⚠️ 100ms Delay + Packet Loss
+![Delay 100ms](orange_outputs/delay_100.png)  
+*Figure 5: High RTT due to 100ms delay. Packet loss may not always be observed due to randomness.*
 
-![Normal](outputs/normal.png)
+---
 
-### 50ms Delay
-
-![Delay 50ms](outputs/delay50.png)
-
-### 100ms Delay + Loss
-
-![Delay 100ms](outputs/delay100.png)
-
-### Python Script Output
-
-![Script](outputs/script.png)
+### 💻 Python Script Output
+![Script Output](orange_outputs/delay_measure.py.png)  
+*Figure 6: Automated extraction of RTT values using the Python script.*
 
 ---
 
 ## ✅ Conclusion
 
-This project demonstrates how network latency varies under different conditions such as delay and packet loss. The SDN controller introduces initial overhead but improves efficiency through flow rule installation. Blocking rules effectively restrict communication, showcasing network control capabilities.
+The project demonstrates how latency varies under different network conditions. SDN introduces initial overhead but improves efficiency. Flow rules enable control over network behavior, including blocking traffic.
 
 ---
-
-## 📚 References
-
-* https://mininet.org
-* POX Controller Documentation
-* Course Materials
